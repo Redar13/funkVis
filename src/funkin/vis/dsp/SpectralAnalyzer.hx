@@ -144,7 +144,7 @@ class SpectralAnalyzer
 	public function new(audioSource:EitherType<AudioSource, FlxSound>, barCount:Int, maxDelta:Float = 0.01, peakHold:Int = 30)
 	{
 		this.audioClip = Std.isOfType(audioSource, AudioSource) ? new LimeAudioClip(cast audioSource) : new FlixelAudioClip(cast audioSource);
-		this.audioSource = audioClip.source;
+		this.audioSource = audioClip.audioSource;
 		this.barCount = barCount;
 		this.maxDelta = maxDelta;
 		this.peakHold = peakHold;

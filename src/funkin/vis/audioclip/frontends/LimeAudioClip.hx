@@ -19,10 +19,12 @@ class LimeAudioClip implements funkin.vis.AudioClip
 {
 	public var audioBuffer(default, null):AudioBuffer;
     public var currentFrame(get, never):Int;
+	public var audioSource:AudioSource;
 	public var source:Dynamic;
 
 	public function new(audioSource:AudioSource)
 	{
+		this.audioSource = audioSource;
 		var data:lime.utils.UInt16Array = cast audioSource.buffer.data;
 
 		#if web

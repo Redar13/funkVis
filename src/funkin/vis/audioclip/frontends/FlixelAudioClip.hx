@@ -12,7 +12,7 @@ import flixel.math.FlxMath;
  */
 class FlixelAudioClip extends funkin.vis.audioclip.frontends.LimeAudioClip
 {
-	var flxSound:FlxSound;
+	public var flxSound:FlxSound;
 
 	public function new(snd:FlxSound)
 	{
