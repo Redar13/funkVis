@@ -2,10 +2,16 @@ package funkin.vis.dsp;
 
 import flixel.FlxG;
 import flixel.math.FlxMath;
+#if (flixel >= "5.3.0")
+import flixel.sound.FlxSound;
+#else
+import flixel.system.FlxSound;
+#end
 import funkin.vis._internal.html5.AnalyzerNode;
-import funkin.vis.audioclip.frontends.LimeAudioClip;
+import funkin.vis.audioclip.frontends.*;
 import grig.audio.FFT;
 import grig.audio.FFTVisualization;
+import haxe.extern.EitherType;
 import lime.media.AudioSource;
 
 using grig.audio.lime.UInt8ArrayTools;
@@ -101,16 +107,18 @@ class SpectralAnalyzer
 				});
 		}
 
-		if (bars[0].freqLo < minFreq)
+		var bar = bars[0];
+		if (bar.freqLo < minFreq)
 		{
-			bars[0].freqLo = minFreq;
-			bars[0].binLo = freqToBin(minFreq, Floor);
+			bar.freqLo = minFreq;
+			bar.binLo = freqToBin(minFreq, Floor);
 		}
 
-		if (bars[bars.length - 1].freqHi > maxFreq)
+		bar = bars[bars.length - 1];
+		if (bar.freqHi > maxFreq)
 		{
-			bars[bars.length - 1].freqHi = maxFreq;
-			bars[bars.length - 1].binHi = freqToBin(maxFreq, Floor);
+			bar.freqHi = maxFreq;
+			bar.binHi = freqToBin(maxFreq, Floor);
 		}
 		#else
 		if (barCount > barHistories.length) {
@@ -133,10 +141,10 @@ class SpectralAnalyzer
 		#end
 	}
 
-	public function new(audioSource:AudioSource, barCount:Int, maxDelta:Float = 0.01, peakHold:Int = 30)
+	public function new(audioSource:EitherType<AudioSource, FlxSound>, barCount:Int, maxDelta:Float = 0.01, peakHold:Int = 30)
 	{
-		this.audioSource = audioSource;
-		this.audioClip = new LimeAudioClip(audioSource);
+		this.audioClip = Std.isOfType(audioSource, AudioSource) ? new LimeAudioClip(cast audioSource) : new FlixelAudioClip(cast audioSource);
+		this.audioSource = audioClip.source;
 		this.barCount = barCount;
 		this.maxDelta = maxDelta;
 		this.peakHold = peakHold;

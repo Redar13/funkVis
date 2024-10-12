@@ -45,11 +45,6 @@ class LimeAudioClip implements funkin.vis.AudioClip
 		dataLength = audioBuffer.data.length;
 		#end
 
-		var value = Std.int(FlxMath.remapToRange(FlxG.sound.music.time, 0, FlxG.sound.music.length, 0, dataLength));
-
-		if (value < 0)
-			return -1;
-
-		return value;
+		return Std.int(Math.max(FlxMath.remapToRange(FlxG.sound.music.time, 0, FlxG.sound.music.length, 0, dataLength), -1));
 	}
 }
