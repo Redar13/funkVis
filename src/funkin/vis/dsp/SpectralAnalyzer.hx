@@ -16,14 +16,12 @@ import lime.media.AudioSource;
 
 using grig.audio.lime.UInt8ArrayTools;
 
-typedef Bar =
-{
+typedef Bar = {
 	var value:Float;
 	var peak:Float;
 }
 
-typedef BarObject =
-{
+typedef BarObject = {
 	var binLo:Int;
 	var binHi:Int;
 	var freqLo:Float;
@@ -31,21 +29,20 @@ typedef BarObject =
 	var recentValues:RecentPeakFinder;
 }
 
-enum MathType
-{
+enum MathType {
 	Round;
 	Floor;
 	Ceil;
 	Cast;
 }
 
-class SpectralAnalyzer
-{
+class SpectralAnalyzer {
 	public var minDb(default, set):Float = -70;
 	public var maxDb(default, set):Float = -20;
 	public var fftN(default, set):Int = 4096;
 	public var minFreq:Float = 50;
 	public var maxFreq:Float = 22000;
+
 	// Awkwardly, we'll have to interfaces for now because there's too much platform specific stuff we need
 	private var audioSource:AudioSource;
 	private var audioClip:AudioClip;
@@ -63,8 +60,7 @@ class SpectralAnalyzer
 	private var blackmanWindow = new Array<Float>();
 	#end
 
-	private function freqToBin(freq:Float, mathType:MathType = Round):Int
-	{
+	private function freqToBin(freq:Float, mathType:MathType = Round):Int {
 		var bin = freq * fftN2 / audioClip.audioBuffer.sampleRate;
 		return switch (mathType) {
 			case Round: Math.round(bin);
@@ -74,13 +70,11 @@ class SpectralAnalyzer
 		}
 	}
 
-	inline function normalizedB(value:Float)
-	{
+	inline function normalizedB(value:Float) {
 		return clamp((value - minDb) / (maxDb - minDb), 0, 1);
 	}
 
-	function calcBars(barCount:Int, peakHold:Int)
-	{
+	function calcBars(barCount:Int, peakHold:Int) {
 		#if web
 		bars = [];
 		var logStep = (LogHelper.log10(maxFreq) - LogHelper.log10(minFreq)) / barCount;
@@ -92,31 +86,27 @@ class SpectralAnalyzer
 
 		// var stride = (scaleMax - scaleMin) / bands;
 
-		for (i in 0...barCount)
-		{
+		for (i in 0...barCount) {
 			var freqLo:Float = Math.pow(10, LogHelper.log10(minFreq) + (logStep * i));
 			var freqHi:Float = Math.pow(10, LogHelper.log10(minFreq) + (logStep * (i + 1)));
 
-			bars.push(
-				{
-					binLo: freqToBin(freqLo, Floor),
-					binHi: freqToBin(freqHi),
-					freqLo: freqLo,
-					freqHi: freqHi,
-					recentValues: new RecentPeakFinder(peakHold)
-				});
+			bars.push({
+				binLo: freqToBin(freqLo, Floor),
+				binHi: freqToBin(freqHi),
+				freqLo: freqLo,
+				freqHi: freqHi,
+				recentValues: new RecentPeakFinder(peakHold)
+			});
 		}
 
 		var bar = bars[0];
-		if (bar.freqLo < minFreq)
-		{
+		if (bar.freqLo < minFreq) {
 			bar.freqLo = minFreq;
 			bar.binLo = freqToBin(minFreq, Floor);
 		}
 
 		bar = bars[bars.length - 1];
-		if (bar.freqHi > maxFreq)
-		{
+		if (bar.freqHi > maxFreq) {
 			bar.freqHi = maxFreq;
 			bar.binHi = freqToBin(maxFreq, Floor);
 		}
@@ -125,15 +115,16 @@ class SpectralAnalyzer
 			barHistories.resize(barCount);
 		}
 		for (i in 0...barCount) {
-			if (barHistories[i] == null) barHistories[i] = new RecentPeakFinder();
+			if (barHistories[i] == null)
+				barHistories[i] = new RecentPeakFinder(peakHold);
 		}
 		#end
 	}
 
-	function resizeBlackmanWindow(size:Int)
-	{
+	function resizeBlackmanWindow(size:Int) {
 		#if !web
-		if (blackmanWindow.length == size) return;
+		if (blackmanWindow.length == size)
+			return;
 		blackmanWindow.resize(size);
 		for (i in 0...size) {
 			blackmanWindow[i] = calculateBlackmanWindow(i, size);
@@ -141,8 +132,7 @@ class SpectralAnalyzer
 		#end
 	}
 
-	public function new(audioSource:EitherType<AudioSource, FlxSound>, barCount:Int, maxDelta:Float = 0.01, peakHold:Int = 30)
-	{
+	public function new(audioSource:EitherType<AudioSource, FlxSound>, barCount:Int, maxDelta:Float = 0.01, peakHold:Int = 30) {
 		this.audioClip = Std.isOfType(audioSource, AudioSource) ? new LimeAudioClip(cast audioSource) : new FlixelAudioClip(cast audioSource);
 		this.audioSource = audioClip.audioSource;
 		this.barCount = barCount;
@@ -159,10 +149,15 @@ class SpectralAnalyzer
 		resizeBlackmanWindow(fftN);
 	}
 
+	#if !web
+	var _tempComplex = new Array<grig.audio.Complex>();
+	var _tempfreq = new Array<Float>();
+	var _tempgraph = new Array<Float>();
+	#end
 	var _tempBars = new Array<Bar>();
-	public function getLevels(?levels:Array<Bar>):Array<Bar>
-	{
-		if(levels == null) levels = _tempBars;
+	public function getLevels(?levels:Array<Bar>):Array<Bar> {
+		if (levels == null)
+			levels = _tempBars;
 		#if web
 		var amplitudes:Array<Float> = htmlAnalyzer.getFloatFrequencyData();
 
@@ -182,13 +177,10 @@ class SpectralAnalyzer
 			bar.recentValues.push(value);
 			var recentPeak = bar.recentValues.peak;
 
-			if(levels[i] != null)
-			{
+			if (levels[i] != null) {
 				levels[i].value = value;
 				levels[i].peak = recentPeak;
-			}
-			else
-			{
+			} else {
 				levels.push({value: value, peak: recentPeak});
 			}
 		}
@@ -199,35 +191,33 @@ class SpectralAnalyzer
 		var wantedLength = fftN * numOctets * audioSource.buffer.channels;
 		var startFrame = audioClip.currentFrame;
 		startFrame -= startFrame % numOctets;
-        if (startFrame < 0)
-        {
+		if (startFrame < 0) {
 			levels.resize(barCount);
-			for (i in 0...barCount)
-			{
-				if(levels[i] != null)
-				{
-					levels[i].value = levels[i].peak = 0;
-				}
-				else
-				{
+			for (i => level in levels) {
+				if (level != null) {
+					level.value = level.peak = 0;
+				} else {
 					levels[i] = {value: 0, peak: 0};
 				}
 			}
-            return levels;
-        }
+			return levels;
+		}
 		var segment = audioSource.buffer.data.subarray(startFrame, min(startFrame + wantedLength, audioSource.buffer.data.length));
 
 		var signal = getSignal(segment, audioSource.buffer.bitsPerSample);
 
 		if (audioSource.buffer.channels > 1) {
-			signal = [for (i in 0...Std.int(signal.length / audioSource.buffer.channels)) {
-				var level = 0.0;
-				for (c in 0...audioSource.buffer.channels) {
-					level += signal[i*audioSource.buffer.channels+c];
+			signal = [
+				for (i in 0...Std.int(signal.length / audioSource.buffer.channels)) {
+					var level:Float = 0.0;
+					for (c in 0...audioSource.buffer.channels) {
+						level += signal[i * audioSource.buffer.channels + c];
+					}
+					level *= blackmanWindow[i];
 				}
-				level *= blackmanWindow[i];
-			}];
+			];
 		}
+
 
 		var range = 16;
 		var freqs = fft.calcFreq(signal);
@@ -237,9 +227,10 @@ class SpectralAnalyzer
 		//	barHistories.resize(bars.length - 1);
 		//	}
 
-		levels.resize(bars.length-1);
+		levels.resize(bars.length - 1);
 		for (i => level in levels) {
-			if (barHistories[i] == null) barHistories[i] = new RecentPeakFinder();
+			if (barHistories[i] == null)
+				barHistories[i] = new RecentPeakFinder(peakHold);
 			var recentValues = barHistories[i];
 			var value = bars[i] / range;
 
@@ -250,16 +241,11 @@ class SpectralAnalyzer
 			}
 			recentValues.push(value);
 
-			var recentPeak = recentValues.peak;
-
-			if(level != null)
-			{
+			if (level != null) {
 				level.value = value;
-				level.peak = recentPeak;
-			}
-			else
-			{
-				levels[i] = {value: value, peak: recentPeak};
+				level.peak = recentValues.peak;
+			} else {
+				levels[i] = {value: value, peak: recentValues.peak};
 			}
 		}
 		return levels;
@@ -268,10 +254,9 @@ class SpectralAnalyzer
 
 	// Prevents a memory leak by reusing array
 	var _buffer:Array<Float> = [];
-	function getSignal(data:lime.utils.UInt8Array, bitsPerSample:Int):Array<Float>
-	{
-		switch(bitsPerSample)
-		{
+
+	function getSignal(data:lime.utils.UInt8Array, bitsPerSample:Int):Array<Float> {
+		switch (bitsPerSample) {
 			case 8:
 				_buffer.resize(data.length);
 				for (i in 0...data.length)
@@ -292,29 +277,26 @@ class SpectralAnalyzer
 				for (i in 0..._buffer.length)
 					_buffer[i] = data.getInt32(i * 4) / 2147483647.0;
 
-			default: trace('Unknown integer audio format');
+			default:
+				trace('Unknown integer audio format');
 		}
 		return _buffer;
 	}
 
 	@:generic
-	static inline function clamp<T:Float>(val:T, min:T, max:T):T
-	{
+	static inline function clamp<T:Float>(val:T, min:T, max:T):T {
 		return val <= min ? min : val >= max ? max : val;
 	}
 
-	static function calculateBlackmanWindow(n:Int, fftN:Int)
-	{
+	static function calculateBlackmanWindow(n:Int, fftN:Int) {
 		return 0.42 - 0.50 * Math.cos(2 * Math.PI * n / (fftN - 1)) + 0.08 * Math.cos(4 * Math.PI * n / (fftN - 1));
 	}
 
-	static public inline function min<T:Float>(x:T, y:T):T
-	{
+	static public inline function min<T:Float>(x:T, y:T):T {
 		return x > y ? y : x;
 	}
 
-	function set_minDb(value:Float):Float
-	{
+	function set_minDb(value:Float):Float {
 		minDb = value;
 
 		#if web
@@ -324,8 +306,7 @@ class SpectralAnalyzer
 		return value;
 	}
 
-	function set_maxDb(value:Float):Float
-	{
+	function set_maxDb(value:Float):Float {
 		maxDb = value;
 
 		#if web
@@ -335,8 +316,7 @@ class SpectralAnalyzer
 		return value;
 	}
 
-	function set_fftN(value:Int):Int
-	{
+	function set_fftN(value:Int):Int {
 		fftN = value;
 		var pow2 = FFT.nextPow2(value);
 		fftN2 = Std.int(pow2 / 2);
