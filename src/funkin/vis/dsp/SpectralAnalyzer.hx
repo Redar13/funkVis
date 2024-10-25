@@ -39,7 +39,7 @@ enum MathType {
 class SpectralAnalyzer {
 	public var minDb(default, set):Float = -70;
 	public var maxDb(default, set):Float = -20;
-	public var fftN(default, set):Int = 4096;
+	public var fftN(default, set):Int =#if desktop 256 #else 4096 #end; // TODO: automate
 	public var minFreq:Float = 50;
 	public var maxFreq:Float = 22000;
 
@@ -206,7 +206,8 @@ class SpectralAnalyzer {
 
 		var signal = getSignal(segment, audioSource.buffer.bitsPerSample);
 
-		if (audioSource.buffer.channels > 1) {
+		if (audioSource.buffer.channels > 1)
+		{
 			signal = [
 				for (i in 0...Std.int(signal.length / audioSource.buffer.channels)) {
 					var level:Float = 0.0;
